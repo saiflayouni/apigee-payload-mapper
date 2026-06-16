@@ -400,7 +400,9 @@ function resetDemo() {
   document.getElementById('sourcePayload').textContent = '— run a scenario —';
   document.getElementById('formatTag').style.display = 'none';
   document.getElementById('staticBox').classList.remove('show');
+  document.getElementById('missingList').innerHTML = '';
   document.getElementById('gemCard').classList.remove('show');
+  document.getElementById('gemBody').innerHTML = 'analyzing source payload + target schema…';
   document.getElementById('apigeeLog').innerHTML = '';
   document.getElementById('resultCard').classList.remove('show');
   document.getElementById('emptyState').style.display = '';

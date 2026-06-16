@@ -8,6 +8,15 @@
 
 ---
 
+## Demo
+
+| ✅ Unmodified — static mapping works | ⚠ Drifted — static mapping breaks |
+|:---:|:---:|
+| ![Unmodified](docs/demo-unmodified.png) | ![Drifted](docs/demo-drifted.png) |
+| Partner sends the expected format, no AI needed | Partner renames every field — fails open with an audit alert (or self-heals with a Gemini key) |
+
+---
+
 ## What Problem Does This Solve?
 
 Banks integrate constantly with third-party systems — legacy core banking platforms, fintech partners, payment providers — each with its own payload format, often poorly documented and changing without notice.
