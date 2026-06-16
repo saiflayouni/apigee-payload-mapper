@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apigee X — Self-Healing Semantic Payload Mapper</title>
+<style>
+:root {
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --border:   #30363d;
+  --text:     #e6edf3;
+  --muted:    #8b949e;
+  --green:    #3fb950;
+  --red:      #f85149;
+  --blue:     #58a6ff;
+  --purple:   #bc8cff;
+  --yellow:   #e3b341;
+  --g-blue:   #4285F4;
+  --g-red:    #EA4335;
+  --g-green:  #34A853;
+  --g-yellow: #FBBC05;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Google Sans', 'Segoe UI', system-ui, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+header {
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.gdots { display: flex; gap: 5px; }
+.gdot { width: 11px; height: 11px; border-radius: 50%; }
+h1 { font-size: 17px; font-weight: 600; }
+h1 span { color: var(--g-blue); }
+.subtitle { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.controls { display: flex; align-items: center; gap: 8px; }
+
+.tabs {
+  display: flex;
+  background: rgba(0,0,0,0.4);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+.tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+}
+.tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+
+button.run {
+  padding: 7px 18px;
+  border-radius: 7px;
+  border: none;
+  background: var(--g-blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity .15s;
+}
+button.run:disabled { opacity: .4; cursor: not-allowed; }
+button.reset {
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+button.reset:hover { color: var(--text); border-color: var(--text); }
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  padding: 14px;
+  overflow: hidden;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.panel-icon { font-size: 18px; }
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--muted);
+}
+.dot {
+  margin-left: auto;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background .3s;
+}
+.dot.active  { background: var(--green); animation: blink 1.2s infinite; }
+.dot.blocked { background: var(--red); animation: none; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+pre.payload {
+  flex-shrink: 0;
+  background: rgba(0,0,0,.35);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow: auto;
+  max-height: 220px;
+  color: var(--text);
+}
+.format-tag {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(88,166,255,.12);
+  color: var(--blue);
+}
+
+.static-box {
+  padding: 12px;
+  background: rgba(255,255,255,.03);
+  border-radius: 10px;
+  display: none;
+}
+.static-box.show { display: block; }
+.static-box .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing:.06em; margin-bottom: 8px; }
+.static-status { font-size: 16px; font-weight: 700; font-family: monospace; }
+.static-status.ok { color: var(--green); }
+.static-status.bad { color: var(--red); }
+.missing-list { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.missing-list span { color: var(--red); font-family: monospace; }
+
+.gem-card {
+  padding: 11px 13px;
+  background: rgba(188,140,255,.05);
+  border: 1px solid rgba(188,140,255,.15);
+  border-radius: 10px;
+  display: none;
+}
+.gem-card.show { display: block; }
+.gem-lbl { font-size: 10px; color: var(--purple); text-transform: uppercase; letter-spacing:.06em; margin-bottom:8px; }
+.conf-row { display: flex; align-items: center; gap: 10px; }
+.conf-num { font-size: 28px; font-weight: 700; font-family: monospace; color: var(--purple); min-width: 50px; }
+.cbar { flex:1; }
+.cbar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.cbar-fill { height: 100%; border-radius: 3px; transition: width .5s ease; background: linear-gradient(90deg,var(--red),var(--yellow),var(--green)); }
+.cbar-lbl { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.gem-reason { font-size: 11px; color: var(--muted); margin-top: 7px; line-height: 1.45; }
+.gem-alert { font-size: 12px; color: var(--red); font-weight: 600; }
+
+.log {
+  flex: 1;
+  background: rgba(0,0,0,.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 11.5px;
+  overflow-y: auto;
+  min-height: 60px;
+}
+.log::-webkit-scrollbar { width: 4px; }
+.log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.le {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,.03);
+  animation: fi .2s ease;
+}
+@keyframes fi { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
+.ln  { color: var(--muted); min-width: 30px; }
+.lok { color: var(--green); }
+.lbl { color: var(--red); font-weight: 700; }
+.lpurp{ color: var(--purple); }
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.empty-state .icon { font-size: 36px; }
+
+.result-card { display: none; flex-direction: column; gap: 10px; overflow: auto; }
+.result-card.show { display: flex; animation: pop .35s ease; }
+@keyframes pop { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:none} }
+
+.det-badge {
+  display: inline-flex;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  align-self: flex-start;
+}
+.det-badge.static            { background:rgba(88,166,255,.12); color:var(--blue); }
+.det-badge.gemini_self_healed{ background:rgba(52,168,83,.14); color:var(--green); }
+.det-badge.static_unvalidated_fallback { background:rgba(248,81,73,.12); color:var(--red); }
+
+.saved-box {
+  padding: 14px;
+  background: rgba(52,168,83,.08);
+  border: 1px solid rgba(52,168,83,.18);
+  border-radius: 10px;
+  text-align: center;
+}
+.saved-box.bad { background: rgba(248,81,73,.08); border-color: rgba(248,81,73,.18); }
+.saved-amt { font-size: 16px; font-weight: 700; color: var(--green); }
+.saved-box.bad .saved-amt { color: var(--red); }
+.saved-lbl { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+footer {
+  padding: 9px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(66,133,244,.1);
+  color: var(--g-blue);
+  font-size: 10.5px;
+}
+.tags { display: flex; gap: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="gdots">
+      <div class="gdot" style="background:var(--g-blue)"></div>
+      <div class="gdot" style="background:var(--g-red)"></div>
+      <div class="gdot" style="background:var(--g-green)"></div>
+      <div class="gdot" style="background:var(--g-yellow)"></div>
+    </div>
+    <div>
+      <h1><span>Apigee X</span> — Self-Healing Semantic Payload Mapper</h1>
+      <div class="subtitle">Static field mapping with a Gemini 2.5 Flash fallback when it breaks</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="tabs">
+      <button class="tab active" onclick="setMode('ok',this)">✅ Unmodified</button>
+      <button class="tab" onclick="setMode('drifted',this)">⚠ Drifted</button>
+    </div>
+    <button class="run" id="runBtn" onclick="runDemo()">▶ Run</button>
+    <button class="reset" onclick="resetDemo()">↺ Reset</button>
+  </div>
+</header>
+
+<main>
+  <!-- ── Panel 1: Source ─────────────────────────────────── -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-icon">🏦</span>
+      <span class="panel-title">Source Payload</span>
+      <div class="dot" id="dotSource"></div>
+    </div>
+    <div id="formatTag" class="format-tag" style="display:none"></div>
+    <pre class="payload" id="sourcePayload">— run a scenario —</pre>
+  </div>
+
+  <!-- ── Panel 2: Apigee ────────────────────────────────── -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-icon">🛡️</span>
+      <span class="panel-title">Apigee Gateway</span>
+      <div class="dot" id="dotApigee"></div>
+    </div>
+
+    <div class="static-box" id="staticBox">
+      <div class="lbl">JS-StaticMapping → JS-ValidateMapping</div>
+      <div class="static-status" id="staticStatus">—</div>
+      <div class="missing-list" id="missingList"></div>
+    </div>
+
+    <div class="gem-card" id="gemCard">
+      <div class="gem-lbl">✦ Gemini 2.5 Flash — Semantic Remap</div>
+      <div id="gemBody">analyzing source payload + target schema…</div>
+    </div>
+
+    <div class="log" id="apigeeLog"></div>
+  </div>
+
+  <!-- ── Panel 3: Result ────────────────────────────────── -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-icon">📊</span>
+      <span class="panel-title">Result</span>
+      <div class="dot" id="dotResult"></div>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <div class="icon">⏳</div>
+      <div>Run a scenario to see the transformed payload</div>
+    </div>
+
+    <div class="result-card" id="resultCard">
+      <div id="detBadge"></div>
+      <pre class="payload" id="resultPayload"></pre>
+      <div class="saved-box" id="savedBox">
+        <div class="saved-amt" id="savedAmt">—</div>
+        <div class="saved-lbl">outcome</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="tags">
+    <span class="tag">Apigee X Emulator 1.9.2</span>
+    <span class="tag">Gemini 2.5 Flash</span>
+    <span class="tag">GDE Demo</span>
+  </div>
+  <div>Runtime <code>:8999</code> · UI <code>:3001</code></div>
+</footer>
+
+<script>
+let mode = 'ok', running = false, es = null;
+
+function setMode(m, btn) {
+  mode = m;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setDot(id, state) {
+  const d = document.getElementById(id);
+  d.className = 'dot' + (state ? ' ' + state : '');
+}
+
+function addLog(id, html) {
+  const log = document.getElementById(id);
+  const e = document.createElement('div');
+  e.className = 'le';
+  e.innerHTML = html;
+  log.appendChild(e);
+  log.scrollTop = log.scrollHeight;
+}
+
+function resetDemo() {
+  if (es) { es.close(); es = null; }
+  running = false;
+  document.getElementById('sourcePayload').textContent = '— run a scenario —';
+  document.getElementById('formatTag').style.display = 'none';
+  document.getElementById('staticBox').classList.remove('show');
+  document.getElementById('gemCard').classList.remove('show');
+  document.getElementById('apigeeLog').innerHTML = '';
+  document.getElementById('resultCard').classList.remove('show');
+  document.getElementById('emptyState').style.display = '';
+  document.getElementById('runBtn').disabled = false;
+  ['dotSource','dotApigee','dotResult'].forEach(id => setDot(id, ''));
+}
+
+function runDemo() {
+  if (running) return;
+  resetDemo();
+  running = true;
+  document.getElementById('runBtn').disabled = true;
+  setDot('dotSource', 'active');
+  setDot('dotApigee', 'active');
+
+  es = new EventSource('/api/run?mode=' + mode);
+
+  es.addEventListener('source', ev => {
+    const d = JSON.parse(ev.data);
+    document.getElementById('sourcePayload').textContent = JSON.stringify(d.payload, null, 2);
+    const tag = document.getElementById('formatTag');
+    tag.style.display = 'inline-flex';
+    tag.textContent = mode === 'ok' ? 'core banking — expected format' : 'partner drifted the schema';
+    addLog('apigeeLog', `<span class="lok">→ request received</span>`);
+  });
+
+  es.addEventListener('static_result', ev => {
+    const d = JSON.parse(ev.data);
+    const box = document.getElementById('staticBox');
+    box.classList.add('show');
+    const status = document.getElementById('staticStatus');
+    if (d.valid) {
+      status.textContent = '✓ mapping valid';
+      status.className = 'static-status ok';
+      addLog('apigeeLog', `<span class="lok">✓ JS-StaticMapping produced a valid payload</span>`);
+    } else {
+      status.textContent = '✗ mapping incomplete';
+      status.className = 'static-status bad';
+      document.getElementById('missingList').innerHTML =
+        'missing: ' + d.missing_fields.map(f => `<span>${f}</span>`).join(', ');
+      addLog('apigeeLog', `<span class="lbl">✗ JS-ValidateMapping failed — ${d.missing_fields.length} field(s) missing</span>`);
+    }
+  });
+
+  es.addEventListener('gemini_check', () => {
+    document.getElementById('gemCard').classList.add('show');
+    document.getElementById('gemBody').innerHTML = 'analyzing source payload + target schema…';
+    addLog('apigeeLog', `<span class="lpurp">✦ SC-GeminiRemap calling Gemini 2.5 Flash…</span>`);
+  });
+
+  es.addEventListener('gemini_result', ev => {
+    const d = JSON.parse(ev.data);
+    document.getElementById('gemBody').innerHTML = `
+      <div class="conf-row">
+        <div class="conf-num">${(d.confidence ?? 0).toFixed(2)}</div>
+        <div class="cbar">
+          <div class="cbar-track"><div class="cbar-fill" style="width:${(d.confidence ?? 0) * 100}%"></div></div>
+          <div class="cbar-lbl">remap confidence</div>
+        </div>
+      </div>
+      <div class="gem-reason">${d.notes || ''}</div>`;
+    addLog('apigeeLog', `<span class="lok">✓ Gemini self-healed the mapping</span>`);
+  });
+
+  es.addEventListener('gemini_failed', ev => {
+    const d = JSON.parse(ev.data);
+    document.getElementById('gemBody').innerHTML = `<div class="gem-alert">⚠ ${d.alert || 'Gemini remap unavailable'}</div>`;
+    addLog('apigeeLog', `<span class="lbl">✗ fail-open — static mapping returned as-is</span>`);
+  });
+
+  es.addEventListener('done', ev => {
+    const d = JSON.parse(ev.data);
+    showResult(d);
+    setDot('dotApigee', d.mapping_method === 'static_unvalidated_fallback' ? 'blocked' : '');
+    setDot('dotResult', d.mapping_method === 'static_unvalidated_fallback' ? 'blocked' : 'active');
+    finish();
+  });
+
+  es.addEventListener('error', ev => {
+    addLog('apigeeLog', `<span class="lbl">Error — is the emulator running? bash deploy.sh</span>`);
+    finish();
+  });
+  es.onerror = () => finish();
+}
+
+function finish() {
+  if (es) { es.close(); es = null; }
+  running = false;
+  document.getElementById('runBtn').disabled = false;
+  setDot('dotSource', '');
+}
+
+function showResult(d) {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('detBadge').innerHTML =
+    `<span class="det-badge ${d.mapping_method}">${d.mapping_method.replace(/_/g,' ')}</span>`;
+  document.getElementById('resultPayload').textContent = JSON.stringify(d.transformed_payload, null, 2);
+
+  const savedBox = document.getElementById('savedBox');
+  const savedAmt = document.getElementById('savedAmt');
+  if (d.mapping_method === 'static') {
+    savedBox.className = 'saved-box';
+    savedAmt.textContent = 'Static mapping succeeded — no AI call needed';
+  } else if (d.mapping_method === 'gemini_self_healed') {
+    savedBox.className = 'saved-box';
+    savedAmt.textContent = 'Self-healed — 0 downtime, 0 manual fix';
+  } else {
+    savedBox.className = 'saved-box bad';
+    savedAmt.textContent = 'Failed open — flagged for manual review';
+  }
+  document.getElementById('resultCard').classList.add('show');
+}
+</script>
+</body>
+</html>

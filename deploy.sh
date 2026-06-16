@@ -162,3 +162,30 @@ else
 fi
 echo "   Runtime : $RUNTIME/payload-mapper"
 echo "   Org/Env : $APIGEE_ORG / $APIGEE_ENV"
+
+# ── 6. Start UI server ───────────────────────────────────────────────────────
+
+UI_PORT=3001
+
+if lsof -ti tcp:$UI_PORT > /dev/null 2>&1; then
+  echo "✓ UI server already running"
+else
+  echo "▶ Starting UI server..."
+  cd "$SCRIPT_DIR" && python3 server.py > /tmp/apigee-payload-mapper-ui.log 2>&1 &
+  UI_PID=$!
+  sleep 1
+  if kill -0 "$UI_PID" 2>/dev/null; then
+    echo "✓ UI server started (pid $UI_PID)"
+  else
+    echo "✗ UI server failed to start — check /tmp/apigee-payload-mapper-ui.log"
+  fi
+fi
+
+echo ""
+echo "   Open: http://localhost:$UI_PORT"
+
+if command -v open > /dev/null 2>&1; then
+  open "http://localhost:$UI_PORT"
+elif command -v xdg-open > /dev/null 2>&1; then
+  xdg-open "http://localhost:$UI_PORT"
+fi
