@@ -1,0 +1,8 @@
+{
+  "accountNumber": "string",
+  "balance": {
+    "amount": "number",
+    "currency": "string (ISO 4217, 3 letters)"
+  },
+  "transactionDate": "string (YYYY-MM-DD)"
+}

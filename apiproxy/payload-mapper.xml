@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<APIProxy name="payload-mapper">
+  <DisplayName>Self-Healing Semantic Payload Mapper</DisplayName>
+  <Description>Falls back to Gemini semantic remapping when the static field mapping breaks</Description>
+  <BasePaths>/payload-mapper</BasePaths>
+</APIProxy>

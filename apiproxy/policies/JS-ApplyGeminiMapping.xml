@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Javascript name="JS-ApplyGeminiMapping" timeLimit="200">
+  <ResourceURL>jsc://apply-gemini-mapping.js</ResourceURL>
+</Javascript>

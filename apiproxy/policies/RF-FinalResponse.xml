@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RaiseFault name="RF-FinalResponse">
+  <FaultResponse>
+    <Set>
+      <StatusCode>200</StatusCode>
+      <ReasonPhrase>OK</ReasonPhrase>
+      <Payload contentType="application/json">{mapper.final_response}</Payload>
+    </Set>
+  </FaultResponse>
+  <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+</RaiseFault>

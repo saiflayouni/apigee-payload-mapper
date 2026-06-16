@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProxyEndpoint name="default">
+  <PreFlow>
+    <Request>
+      <!-- Always attempt the fast, free, static field mapping first -->
+      <Step><Name>JS-StaticMapping</Name></Step>
+      <Step><Name>JS-ValidateMapping</Name></Step>
+
+      <!-- Static mapping produced an incomplete/invalid payload -> ask Gemini to self-heal -->
+      <Step>
+        <Name>JS-BuildGeminiRemapRequest</Name>
+        <Condition>mapping.valid = "false"</Condition>
+      </Step>
+      <Step>
+        <Name>AM-BuildGeminiRemapRequest</Name>
+        <Condition>mapping.valid = "false"</Condition>
+      </Step>
+      <Step>
+        <Name>SC-GeminiRemap</Name>
+        <Condition>mapping.valid = "false"</Condition>
+      </Step>
+      <Step>
+        <Name>JS-ApplyGeminiMapping</Name>
+        <Condition>mapping.valid = "false"</Condition>
+      </Step>
+
+      <!-- Always log the decision and return the transformed payload -->
+      <Step><Name>JS-AuditMappingDecision</Name></Step>
+      <Step><Name>RF-FinalResponse</Name></Step>
+    </Request>
+  </PreFlow>
+  <HTTPProxyConnection>
+    <BasePath>/payload-mapper</BasePath>
+  </HTTPProxyConnection>
+  <RouteRule name="default">
+    <TargetEndpoint>default</TargetEndpoint>
+  </RouteRule>
+</ProxyEndpoint>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Javascript name="JS-BuildGeminiRemapRequest" timeLimit="200">
+  <ResourceURL>jsc://build-gemini-remap-request.js</ResourceURL>
+</Javascript>
